@@ -76,6 +76,7 @@ export default function EmployeeWorkspace({
       setEmployeeLeaves(dashboard.leaves);
       setEmployeeTimesheets(dashboard.timesheets);
       setEmployeePayrolls(dashboard.payrolls);
+
       if (dashboard.payrolls.length > 0) {
         setSelectedPayroll(dashboard.payrolls[0]);
       }
@@ -139,7 +140,6 @@ export default function EmployeeWorkspace({
     ? payslips[currentEmployee.id] || []
     : [];
 
-  const [selectedPayslipId, setSelectedPayslipId] = useState<string | null>(null);
   const [leaveType, setLeaveType] = useState<LeaveType>("Casual");
   const [leaveTypes, setLeaveTypes] = useState<any[]>([]);
   const today = new Date().toISOString().split("T")[0];
@@ -319,26 +319,38 @@ export default function EmployeeWorkspace({
   };
 
   // Handle Payslip Download
-  const handleDownloadPayslip = (
-    slip: Payslip
-  ) => {
-    alert(
-      `Preparing payslip download for ${slip.month}`
-    );
+  const handleDownloadPayslip = async (payrollId: string) => {
+    try {
+      const response = await api.get(
+        `/payrolls/${payrollId}/payslip`,
+        {
+          responseType: "blob",
+        }
+      );
+      const url = window.URL.createObjectURL(
+        new Blob([response.data])
+      );
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Payslip.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error(error);
+      alert("Unable to download payslip.");
+    }
   };
 
   const latestLeave = employeeLeaves.length > 0 ? employeeLeaves[0] : null;
   const latestTimesheetState = employeeTimesheets.length > 0 ? employeeTimesheets[0] : null;
-
   const latestPayroll =
-    employeePayrolls.length > 0
-      ? employeePayrolls[0]
-      : null;
+  employeePayrolls.length > 0
+    ? employeePayrolls[0]
+    : null;
 
-  const selectedPayslip =
-    userPayslips.find(
-      (p) => p.id === selectedPayslipId
-    ) || userPayslips[0];
 
   const tabs = [
     {
@@ -1506,8 +1518,8 @@ export default function EmployeeWorkspace({
                       const isSelected = payroll.id === selectedPayroll?.id;
                       return (
                         <button
-                          key={slip.id}
-                          id={`payslip-select-btn-${slip.id}`}
+                          key={payroll.id}
+                          id={`payslip-select-btn-${payroll.id}`}
                           onClick={() => setSelectedPayroll(payroll)}
                           className={`w-full text-left p-3.5 rounded-lg border transition cursor-pointer ${isSelected
                             ? 'bg-[#30363d] border-[#444d56] text-[#c9d1d9]'
@@ -1516,9 +1528,9 @@ export default function EmployeeWorkspace({
                         >
                           <div className="flex justify-between items-center">
                             <span className="font-semibold text-sm text-[#c9d1d9]">{`${payroll.payrollMonth}/${payroll.payrollYear}`}</span>
-                            <span className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded ${payroll.status === 'Paid' ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/40' : 'bg-yellow-950/40 text-yellow-500'
+                            <span className={`text-[10px] font-mono font-medium px-2 py-0.5 rounded ${payroll.status === "PAID" ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-800/40' : 'bg-yellow-950/40 text-yellow-500'
                               }`}>
-                              {slip.status}
+                              {payroll.status}
                             </span>
                           </div>
                           <div className="flex items-baseline justify-between mt-2 text-xs">
@@ -1528,7 +1540,7 @@ export default function EmployeeWorkspace({
                         </button>
                       );
                     })}
-                    {userPayslips.length === 0 && (
+                    {employeePayrolls.length === 0 && (
                       <div className="text-center py-10 text-xs text-[#8b949e] italic">No historic payslips have been registered yet.</div>
                     )}
                   </div>
@@ -1542,7 +1554,7 @@ export default function EmployeeWorkspace({
                         <div className="flex justify-between items-start pb-4 border-b border-[#30363d]">
                           <div>
                             <div className="text-xs uppercase font-mono tracking-wider text-[#8b949e]">Remittance Item Ledger</div>
-                            <h3 className="text-lg font-bold text-[#c9d1d9] mt-0.5">{selectedPayslip.month} Ledger</h3>
+                            <h3 className="text-lg font-bold text-[#c9d1d9] mt-0.5">{selectedPayroll.payrollMonth}/{selectedPayroll.payrollYear} Ledger</h3>
                           </div>
                           <div className="text-right">
                             <div className="text-xs text-[#8b949e] uppercase font-mono">Status Status</div>
@@ -1559,8 +1571,9 @@ export default function EmployeeWorkspace({
                           </div>
                           <div>
                             <div className="text-xs text-[#8b949e]">Tax Identifier / Account ID</div>
-                            <div className="font-mono text-[#c9d1d9] mt-0.5">X-PAY-REF-{selectedPayslip.id.toUpperCase()}</div>
-                            <div className="text-[#8b949e]">Ref Cycle Mon: {selectedPayslip.month}</div>
+                            <div className="font-mono text-[#c9d1d9] mt-0.5">X-PAY-REF-{selectedPayroll.id.toUpperCase()}</div>
+                            <div className="text-[#8b949e]">Ref Cycle:
+                              {selectedPayroll.payrollMonth}/{selectedPayroll.payrollYear}</div>
                           </div>
                         </div>
 
@@ -1572,25 +1585,16 @@ export default function EmployeeWorkspace({
                             {/* Base salary components */}
                             <div className="flex justify-between items-center py-2 border-b border-[#30363d]/40">
                               <span className="text-[#8b949e]">Base Salary Component (Contractual)</span>
-                              <span className="text-[#c9d1d9]">${selectedPayslip.baseSalary.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                            </div>
-
-                            {/* Overtime additions */}
-                            <div className="flex justify-between items-center py-2 border-b border-[#30363d]/40">
-                              <div>
-                                <span className="text-[#8b949e]">Overtime Premium Earnings</span>
-                                <span className="text-[10px] text-emerald-400/80 block">{selectedPayslip.overtimeHours} hours approved</span>
-                              </div>
-                              <span className="text-emerald-400">+${selectedPayslip.overtimePay.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                              <span className="text-[#c9d1d9]">$₹{Number(selectedPayroll.baseSalary).toLocaleString("en-IN")}</span>
                             </div>
 
                             {/* Unpaid leave deductions */}
                             <div className="flex justify-between items-center py-2 border-b border-[#30363d]/40 text-red-400">
                               <div>
                                 <span>Unpaid Absence Deductions</span>
-                                <span className="text-[10px] text-red-400/80 block">{selectedPayslip.unpaidLeaveDays} days unpaid</span>
+                                <span className="text-[10px] text-red-400/80 block">{selectedPayroll.unpaidLeaveDays} days unpaid</span>
                               </div>
-                              <span>-${selectedPayslip.leaveDeduction.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                              <span>-${selectedPayroll.leaveDeduction.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                             </div>
                           </div>
                         </div>
@@ -1601,13 +1605,13 @@ export default function EmployeeWorkspace({
                         <div className="flex items-baseline space-x-2">
                           <span className="text-xs uppercase font-mono tracking-wider text-[#8b949e]">Calculated Net Remitted:</span>
                           <span className="text-2xl font-mono font-bold text-emerald-400">
-                            ${selectedPayslip.netPayout.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                            ₹{Number(selectedPayroll.netSalary).toLocaleString("en-IN")}
                           </span>
                         </div>
 
                         <button
                           id="download-payslip-pdf-btn"
-                          onClick={() => handleDownloadPayslip(selectedPayslip)}
+                          onClick={() => handleDownloadPayslip(selectedPayroll.id)}
                           className="w-full sm:w-auto px-4 py-2.5 bg-[#30363d] hover:bg-[#444d56] text-[#c9d1d9] text-xs font-medium border border-[#444d56] rounded-lg flex items-center justify-center space-x-2 transition cursor-pointer"
                         >
                           <Download className="w-3.5 h-3.5" />
