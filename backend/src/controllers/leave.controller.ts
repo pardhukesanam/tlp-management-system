@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../utils/prisma";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { sendEmail } from "../utils/mail";
 
 export class LeaveController {
   static async createLeaveRequest(
@@ -126,7 +127,7 @@ export class LeaveController {
       });
     }
   }
-  
+
   static async getPendingLeaves(
     req: AuthRequest,
     res: Response
@@ -248,6 +249,52 @@ export class LeaveController {
           }
         );
 
+      const employee =
+        await prisma.employee.findUnique({
+          where: {
+            id: leave.employeeId,
+          },
+          include: {
+            user: true,
+            leaveType: false,
+          },
+        });
+
+      if (employee?.user?.email) {
+        await sendEmail(
+          employee.user.email,
+          "Leave Request Approved",
+          `
+    <h2>Leave Approved ✅</h2>
+
+    <p>Hello <b>${employee.firstName}</b>,</p>
+
+    <p>Your leave request has been approved.</p>
+
+    <table>
+      <tr>
+        <td><b>From</b></td>
+        <td>${leave.startDate.toDateString()}</td>
+      </tr>
+
+      <tr>
+        <td><b>To</b></td>
+        <td>${leave.endDate.toDateString()}</td>
+      </tr>
+
+      <tr>
+        <td><b>Total Days</b></td>
+        <td>${leave.totalDays}</td>
+      </tr>
+    </table>
+
+    <br>
+
+    Regards,<br>
+    <b>Dugong Global Services</b>
+    `
+        );
+      }
       return res.status(200).json({
         message: "Leave approved successfully",
         leave: updatedLeave,
@@ -261,6 +308,7 @@ export class LeaveController {
       });
     }
   }
+
   static async rejectLeave(
     req: AuthRequest,
     res: Response
@@ -376,7 +424,7 @@ export class LeaveController {
       });
     }
   }
-
+  
   static async getAllLeaves(
     req: AuthRequest,
     res: Response

@@ -4,10 +4,11 @@ import { loginUser } from "../api/auth.api";
 
 interface LoginGatewayProps {
   onLogin: (username: string) => void;
+  onForgotPassword: () => void;
 }
 
-export default function LoginGateway({ onLogin }: LoginGatewayProps) {
-  const [username, setUsername] = useState('');
+export default function LoginGateway({ onLogin, onForgotPassword }: LoginGatewayProps) {
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -15,14 +16,10 @@ export default function LoginGateway({ onLogin }: LoginGatewayProps) {
   const handleSubmit = async (
     e: React.FormEvent
   ) => {
-
     e.preventDefault();
-
     setError("");
-
     try {
-
-      const data = await loginUser( username, password );
+      const data = await loginUser(email, password);
 
       console.log(data);
 
@@ -46,17 +43,17 @@ export default function LoginGateway({ onLogin }: LoginGatewayProps) {
         data.user.employeeId ?? ""
       );
 
+      localStorage.setItem(
+        "mustChangePassword",
+        String(data.mustChangePassword)
+      );
       onLogin(JSON.stringify(data.user));
-
     } catch (error: any) {
-
       setError(
         error?.response?.data?.message ||
         "Login failed"
       );
-
     }
-
   };
 
   return (
@@ -91,10 +88,10 @@ export default function LoginGateway({ onLogin }: LoginGatewayProps) {
                 <User className="w-4 h-4" />
               </span>
               <input
-                id="username-input"
+                id="email-input"
                 type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 placeholder="Enter username"
                 className="w-full pl-10 pr-4 py-2.5 bg-[#121212] border border-[#30363d] rounded-lg text-sm text-[#c9d1d9] placeholder-[#8b949e]/55 focus:outline-none focus:border-[#8b949e]/80 transition duration-150"
               />
@@ -135,6 +132,15 @@ export default function LoginGateway({ onLogin }: LoginGatewayProps) {
           >
             Authenticate Credentials
           </button>
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => onForgotPassword()}
+              className="text-blue-400 hover:underline text-sm mt-3"
+            >
+              Forgot Password?
+            </button>
+          </div>
         </form>
       </div>
     </div>

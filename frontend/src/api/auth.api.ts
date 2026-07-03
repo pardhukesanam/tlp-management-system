@@ -16,3 +16,18 @@ export const loginUser = async (
 
   return response.data;
 };
+
+export const changePassword = async (
+  currentPassword: string,
+  newPassword: string
+) => {
+  const response = await api.post(
+    "/auth/change-password",
+    {
+      currentPassword,
+      newPassword,
+    }
+  );
+
+  return response.data;
+};

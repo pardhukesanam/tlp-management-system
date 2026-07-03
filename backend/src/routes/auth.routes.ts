@@ -18,4 +18,25 @@ router.post(
   AuthController.logout
 );
 
+router.post(
+  "/change-password",
+  authenticate,
+  AuthController.changePassword
+);
+
+router.post(
+  "/forgot-password",
+  AuthController.sendResetOtp
+);
+
+router.post(
+  "/verify-otp",
+  AuthController.verifyResetOtp
+);
+
+router.post(
+  "/reset-password",
+  AuthController.resetPassword
+);
+
 export default router;

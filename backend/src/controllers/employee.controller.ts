@@ -3,6 +3,7 @@ import { prisma } from "../utils/prisma";
 import { AuthService } from "../services/auth.service";
 import { generatePassword } from "../utils/password";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { sendEmail } from "../utils/mail";
 
 export class EmployeeController {
   static async createEmployee(
@@ -84,6 +85,48 @@ export class EmployeeController {
         },
       });
 
+      await sendEmail(
+        email,
+        "Welcome to Dharitri HRMS",
+        `
+        <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
+          <h2>Welcome to Dugong HRMS 🎉</h2>
+
+    <p>Hello <strong>${firstName} ${lastName}</strong>,</p>
+
+    <p>Your employee account has been created successfully.</p>
+
+    <table style="border-collapse:collapse;">
+      <tr>
+        <td><strong>Employee Code</strong></td>
+        <td>${employee.employeeCode}</td>
+      </tr>
+      <tr>
+        <td><strong>Email</strong></td>
+        <td>${email}</td>
+      </tr>
+      <tr>
+        <td><strong>Temporary Password</strong></td>
+        <td>${temporaryPassword}</td>
+      </tr>
+    </table>
+
+    <br>
+
+    <p>
+      Please log in using the above credentials.
+      You will be required to change your password on your first login.
+    </p>
+
+    <br>
+
+    <p>
+      Regards,<br>
+      <strong>Dugong HRMS</strong>
+    </p>
+  </div>
+  `
+      );
       return res.status(201).json({
         message: "Employee created successfully",
 

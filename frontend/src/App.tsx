@@ -16,6 +16,8 @@ import EmployeeWorkspace from './components/EmployeeWorkspace';
 import AdminWorkspace from './components/AdminWorkspace';
 import { api } from "./api/client";
 import { mapEmployeeFromApi } from "./utils/employeeMapper";
+import ChangePassword from "./components/changepassword";
+import ForgotPassword from "./components/ForgotPassword";
 
 const LOCAL_STORAGE_KEY = 'timesheet_salary_app_state_v1';
 
@@ -27,6 +29,8 @@ export default function App() {
   const [timesheets, setTimesheets] = useState<Record<string, Timesheet>>({});
   const [leaveRequests, setLeaveRequests] = useState<Record<string, LeaveRequest[]>>({});
   const [payslips, setPayslips] = useState<Record<string, Payslip[]>>({});
+  const [showForgotPassword, setShowForgotPassword] =
+    useState(false);
 
   const loadEmployees = async () => {
     try {
@@ -241,7 +245,26 @@ export default function App() {
   return (
     <>
       {session === null ? (
-        <LoginGateway onLogin={handleLogin} />
+        showForgotPassword ? (
+          <ForgotPassword
+            onBack={() =>
+              setShowForgotPassword(false)
+            }
+          />
+        ) : (
+          <LoginGateway
+            onLogin={handleLogin}
+            onForgotPassword={() =>
+              setShowForgotPassword(true)
+            }
+          />
+        )
+      ) : localStorage.getItem("mustChangePassword") === "true" ? (
+        <ChangePassword
+          onSuccess={() => {
+            window.location.reload();
+          }}
+        />
       ) : session?.role === "ADMIN" ? (
         <AdminWorkspace
           employees={employees}
