@@ -1,0 +1,30 @@
+{
+  "dependencies": {
+    "@prisma/client": "^6.10.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "fs-extra": "^11.3.5",
+    "jsonwebtoken": "^9.0.3",
+    "number-to-words": "^1.2.4",
+    "pdfkit": "^0.19.1",
+    "prisma": "^6.10.1"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^25.9.3",
+    "@types/number-to-words": "^1.2.3",
+    "@types/pdfkit": "^0.17.6",
+    "nodemon": "^3.1.14",
+    "ts-node": "^10.9.2"
+  },
+  "scripts": {
+    "dev": "nodemon --exec ts-node --files server.ts",
+    "start": "ts-node --files server.ts"
+  }
+}

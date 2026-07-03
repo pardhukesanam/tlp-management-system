@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  EMPLOYEE
+}
+
+model User {
+  id           String @id @default(uuid())
+  username     String @unique
+  email        String @unique
+  passwordHash String
+
+  mustChangePassword Boolean @default(true)
+
+  role UserRole @default(EMPLOYEE)
+
+  employee Employee?
+
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  INACTIVE
+  RESIGNED
+  TERMINATED
+}
+
+model Employee {
+  id String @id @default(uuid())
+
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id])
+
+  employeeCode String @unique
+
+  firstName String
+  lastName  String
+
+  email String  @unique
+  phone String?
+
+  designation String
+
+  joiningDate DateTime
+
+  status EmployeeStatus @default(ACTIVE)
+
+  LeaveRequests LeaveRequest[]
+
+  leaveBalances LeaveBalance[]
+
+  timeEntries TimeEntry[]
+
+  SalaryProfiles SalaryProfile[]
+
+  payrolls Payroll[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("employees")
+}
+
+model LeaveType {
+  id String @id @default(uuid())
+
+  name String @unique
+
+  isPaid Boolean
+
+  LeaveRequests LeaveRequest[]
+
+  leaveBalances LeaveBalance[]
+
+  createdAt DateTime @default(now())
+
+  @@map("leave_types")
+}
+
+enum LeaveRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum LeaveDurationType {
+  FULL_DAY
+  HALF_DAY
+}
+
+model LeaveRequest {
+  id String @id @default(uuid())
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  leaveTypeId String
+  leaveType   LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  startDate DateTime
+  endDate   DateTime
+
+  durationType LeaveDurationType @default(FULL_DAY)
+
+  reason String
+
+  totalDays Int
+
+  status LeaveRequestStatus @default(PENDING)
+
+  reviewedBy String?
+  reviewedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("leave_requests")
+}
+
+enum TimeEntryStatus {
+  DRAFT
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model TimeEntry {
+  id String @id @default(uuid())
+
+  employeeId String
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  workDate DateTime
+
+  status TimeEntryStatus @default(PENDING)
+
+  reviewedBy String?
+  reviewedAt DateTime?
+
+  rejectionReason String?
+
+  activities WorkLogEntry[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, workDate])
+  @@map("time_entries")
+}
+
+model WorkLogEntry {
+  id String @id @default(uuid())
+
+  timeEntryId String
+  timeEntry   TimeEntry @relation(fields: [timeEntryId], references: [id], onDelete: Cascade)
+
+  startTime String
+
+  endTime String
+
+  activity String
+
+  activityType ActivityType @default(WORK)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("work_log_entries")
+}
+
+enum ActivityType {
+  WORK
+  BREAK
+  LUNCH
+  MEETING
+  TRAINING
+  OTHER
+}
+
+model SalaryProfile {
+  id String @id @default(uuid())
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  monthlySalary Decimal
+
+  effectiveDate DateTime
+
+  components SalaryComponent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("salary_profiles")
+}
+
+enum PayrollStatus {
+  DRAFT
+  GENERATED
+  UNDER_REVIEW
+  APPROVED
+  PAID
+  CLOSED
+}
+
+model Payroll {
+  id String @id @default(uuid())
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  payrollMonth Int
+  payrollYear  Int
+
+  baseSalary Decimal
+
+  unpaidLeaveDays Decimal @default(0)
+  leaveDeduction  Decimal @default(0)
+
+  netSalary Decimal
+
+  status PayrollStatus @default(DRAFT)
+
+  generatedAt DateTime?
+  approvedAt  DateTime?
+  paidAt      DateTime?
+
+  payslip Payslip?
+
+  components PayrollComponent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payrolls")
+}
+
+model Payslip {
+  id String @id @default(uuid())
+
+  payrollId String  @unique
+  payroll   Payroll @relation(fields: [payrollId], references: [id])
+
+  pdfPath String?
+
+  generatedAt DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("payslips")
+}
+
+enum NotificationType {
+  LEAVE_REQUEST
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+
+  TIMESHEET_APPROVED
+  TIMESHEET_REJECTED
+
+  PAYROLL_GENERATED
+  PAYSLIP_READY
+
+  SYSTEM
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  title String
+
+  message String
+
+  type NotificationType
+
+  isRead Boolean @default(false)
+
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+enum SalaryComponentType {
+  EARNING
+  DEDUCTION
+}
+
+model SalaryComponent {
+  id String @id @default(uuid())
+
+  salaryProfileId String
+
+  salaryProfile SalaryProfile @relation(fields: [salaryProfileId], references: [id])
+
+  componentName String
+
+  amount Decimal
+
+  componentType SalaryComponentType
+
+  displayOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@map("salary_components")
+}
+
+model PayrollComponent {
+  id String @id @default(uuid())
+
+  payrollId String
+  payroll   Payroll @relation(fields: [payrollId], references: [id])
+
+  name String
+
+  amount Decimal
+
+  componentType SalaryComponentType
+
+  displayOrder Int @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@map("payroll_components")
+}
+
+model LeaveBalance {
+  id String @id @default(uuid())
+
+  employeeId  String
+  leaveTypeId String
+
+  allocatedDays Int @default(0)
+  usedDays      Int @default(0)
+
+  employee  Employee  @relation(fields: [employeeId], references: [id])
+  leaveType LeaveType @relation(fields: [leaveTypeId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([employeeId, leaveTypeId])
+}
+
+model Holiday {
+  id String @id @default(uuid())
+
+  name String
+
+  holidayDate DateTime @unique
+
+  createdAt DateTime @default(now())
+
+  @@map("holidays")
+}

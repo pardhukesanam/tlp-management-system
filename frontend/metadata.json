@@ -1,0 +1,6 @@
+{
+  "name": "Timesheet, Leave, and Salary Management System",
+  "description": "A comprehensive timesheet submission, leave request, and salary calculation system for employees and administrators.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
