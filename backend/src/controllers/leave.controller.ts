@@ -256,7 +256,6 @@ export class LeaveController {
           },
           include: {
             user: true,
-            leaveType: false,
           },
         });
 
@@ -336,13 +335,58 @@ export class LeaveController {
       const updatedLeave =
         await prisma.leaveRequest.update({
           where: { id },
-
           data: {
             status: "REJECTED",
             reviewedBy: req.user.id,
             reviewedAt: new Date(),
           },
         });
+
+      const employee =
+        await prisma.employee.findUnique({
+          where: {
+            id: leave.employeeId,
+          },
+          include: {
+            user: true,
+          },
+        });
+
+      if (employee?.user?.email) {
+        await sendEmail(
+          employee.user.email,
+          "Leave Request Rejected",
+          `
+        <h2>Leave Rejected ❌</h2>
+
+        <p>Hello <b>${employee.firstName}</b>,</p>
+
+        <p>Your leave request has been rejected.</p>
+
+        <table>
+          <tr>
+            <td><b>From</b></td>
+            <td>${leave.startDate.toDateString()}</td>
+          </tr>
+
+          <tr>
+            <td><b>To</b></td>
+            <td>${leave.endDate.toDateString()}</td>
+          </tr>
+
+          <tr>
+            <td><b>Total Days</b></td>
+            <td>${leave.totalDays}</td>
+          </tr>
+        </table>
+
+        <br>
+
+        Regards,<br>
+        <b>Dugong Global Services</b>
+        `
+        );
+      }
 
       return res.status(200).json({
         message: "Leave rejected successfully",
@@ -424,7 +468,7 @@ export class LeaveController {
       });
     }
   }
-  
+
   static async getAllLeaves(
     req: AuthRequest,
     res: Response

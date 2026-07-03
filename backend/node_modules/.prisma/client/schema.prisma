@@ -26,6 +26,8 @@ model User {
 
   notifications Notification[]
 
+  auditLogs AuditLog[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -388,4 +390,22 @@ model PasswordResetOtp {
   createdAt DateTime @default(now())
 
   @@map("password_reset_otps")
+}
+
+model AuditLog {
+  id String @id @default(uuid())
+
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id])
+
+  module      String
+  action      String
+  description String
+
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@map("audit_logs")
 }

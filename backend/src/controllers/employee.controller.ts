@@ -4,10 +4,11 @@ import { AuthService } from "../services/auth.service";
 import { generatePassword } from "../utils/password";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { sendEmail } from "../utils/mail";
+import { AuditService } from "../services/audit.service";
 
 export class EmployeeController {
   static async createEmployee(
-    req: Request,
+    req: AuthRequest,
     res: Response
   ) {
     try {
@@ -127,6 +128,16 @@ export class EmployeeController {
   </div>
   `
       );
+
+      await AuditService.log({
+        userId: req.user?.id,
+        module: "Employee",
+        action: "CREATE",
+        description: `Created employee ${employee.employeeCode} (${employee.firstName} ${employee.lastName})`,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"] as string,
+      });
+
       return res.status(201).json({
         message: "Employee created successfully",
 

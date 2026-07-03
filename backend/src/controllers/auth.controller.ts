@@ -4,6 +4,7 @@ import { AuthService } from "../services/auth.service";
 import { AuthRequest } from "../middleware/auth.middleware";
 import { generateOtp } from "../utils/otp";
 import { sendEmail } from "../utils/mail";
+import { AuditService } from "../services/audit.service";
 
 export class AuthController {
   static async login(req: Request, res: Response) {
@@ -50,6 +51,14 @@ export class AuthController {
           role: user.role,
         });
 
+      await AuditService.log({
+        userId: user.id,
+        module: "Authentication",
+        action: "LOGIN",
+        description: `${user.email} logged into the system`,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"] as string,
+      });
       return res.status(200).json({
         token,
         mustChangePassword: user.mustChangePassword,
@@ -80,6 +89,15 @@ export class AuthController {
     req: AuthRequest,
     res: Response
   ) {
+
+    await AuditService.log({
+      userId: req.user.id,
+      module: "Authentication",
+      action: "LOGOUT",
+      description: `${req.user.email} logged out`,
+      ipAddress: req.ip,
+      userAgent: req.headers["user-agent"] as string,
+    });
     return res.status(200).json({
       user: req.user,
     });
@@ -128,6 +146,14 @@ export class AuthController {
           passwordHash,
           mustChangePassword: false,
         },
+      });
+      await AuditService.log({
+        userId: user.id,
+        module: "Authentication",
+        action: "CHANGE_PASSWORD",
+        description: "Password changed successfully",
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"] as string,
       });
       return res.status(200).json({
         message: "Password changed successfully",
@@ -299,6 +325,14 @@ export class AuthController {
         },
       });
 
+      await AuditService.log({
+        userId: undefined,
+        module: "Authentication",
+        action: "RESET_PASSWORD",
+        description: `${email} reset their password using OTP`,
+        ipAddress: req.ip,
+        userAgent: req.headers["user-agent"] as string,
+      });
       return res.status(200).json({
         message: "Password reset successfully",
       });

@@ -3,6 +3,7 @@ import { prisma } from "../utils/prisma";
 import { generatePayslipPdf } from "../utils/payslipPdf";
 import { getWorkingDaysInMonth } from "../utils/payroll";
 import { AuthRequest } from "../middleware/auth.middleware";
+import { sendEmail } from "../utils/mail";
 
 export class PayrollController {
 
@@ -263,6 +264,66 @@ export class PayrollController {
 
       console.log("CreateMany Result:", result);
 
+      const employeeWithUser =
+        await prisma.employee.findUnique({
+          where: {
+            id: employeeId,
+          },
+          include: {
+            user: true,
+          },
+        });
+
+      if (employeeWithUser?.user?.email) {
+        await sendEmail(
+          employeeWithUser.user.email,
+          `Payroll Generated - ${payrollMonth}/${payrollYear}`,
+          `
+    <div style="font-family: Arial, sans-serif; max-width:600px; margin:auto;">
+
+      <h2>Payroll Generated 💰</h2>
+
+      <p>Hello <b>${employeeWithUser.firstName}</b>,</p>
+
+      <p>Your payroll has been successfully generated.</p>
+
+      <table style="border-collapse:collapse;">
+        <tr>
+          <td><b>Payroll Month</b></td>
+          <td>${payrollMonth}/${payrollYear}</td>
+        </tr>
+
+        <tr>
+          <td><b>Gross Salary</b></td>
+          <td>₹${grossSalary.toLocaleString()}</td>
+        </tr>
+
+        <tr>
+          <td><b>Leave Deduction</b></td>
+          <td>₹${leaveDeduction.toLocaleString()}</td>
+        </tr>
+
+        <tr>
+          <td><b>Net Salary</b></td>
+          <td><b>₹${netSalary.toLocaleString()}</b></td>
+        </tr>
+      </table>
+
+      <br>
+
+      <p>
+        Please login to the HRMS portal to review and download your payslip.
+      </p>
+
+      <br>
+
+      Regards,<br>
+      <b>Dugong Global Services</b>
+
+    </div>
+    `
+        );
+      }
       return res.status(201).json({
         message:
           "Payroll generated successfully",
