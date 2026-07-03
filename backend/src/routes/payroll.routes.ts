@@ -25,10 +25,9 @@ router.get(
 );
 
 router.get(
-  "/:id/payslip",
+  "/:id/payslip/pdf",
   authenticate,
-  adminOnly,
-  PayrollController.getPayslip
+  PayrollController.downloadPayslipPdf
 );
 
 router.get(

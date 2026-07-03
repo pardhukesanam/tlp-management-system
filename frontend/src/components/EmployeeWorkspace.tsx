@@ -322,7 +322,7 @@ export default function EmployeeWorkspace({
   const handleDownloadPayslip = async (payrollId: string) => {
     try {
       const response = await api.get(
-        `/payrolls/${payrollId}/payslip`,
+        `/payrolls/${payrollId}/payslip/pdf`,
         {
           responseType: "blob",
         }
@@ -347,9 +347,9 @@ export default function EmployeeWorkspace({
   const latestLeave = employeeLeaves.length > 0 ? employeeLeaves[0] : null;
   const latestTimesheetState = employeeTimesheets.length > 0 ? employeeTimesheets[0] : null;
   const latestPayroll =
-  employeePayrolls.length > 0
-    ? employeePayrolls[0]
-    : null;
+    employeePayrolls.length > 0
+      ? employeePayrolls[0]
+      : null;
 
 
   const tabs = [
